@@ -1,4 +1,4 @@
-# Aim: Implementation of Point Processing image enhancement Operations in Spatial Domain.
+# Aim: Write a program to enhance the quality of an image by noise removal
 # Name: Anirbaan Ghatak
 # Roll No.: C026
 
@@ -17,80 +17,58 @@ image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 image = cv2.resize(image, (500, 500))
 show_image(image)
 
-# Find the maximum gray level pixel and its location
-max_ins = 0
-max_loc = (0, 0)
+def salt_pepper(image):
 
-height, width = image.shape[:2]
+    noisy_imagesp = np.copy(image)
+    num_pixels = int(0.02 * image.size)
 
-for r in range(height):
-    for c in range(width):
-        ins = image[r, c]
-        if ins > max_ins:
-            max_ins = ins
-            max_loc = (r, c)
+    # Add salt noise (white pixels)
+    salt_coords = [np.random.randint(0, i - 1, num_pixels) for i in image.shape]
+    noisy_imagesp[salt_coords[0], salt_coords[1]] = 255
 
-print(f"Max gray level pixel loc: {max_loc}")
+    # Add pepper noise (black pixels)
+    pepper_coords = [np.random.randint(0, i - 1, num_pixels) for i in image.shape]
+    noisy_imagesp[pepper_coords[0], pepper_coords[1]] = 0
 
-
-# Create and display the negative image
-neg = max_ins - image
-show_image(neg, 'Negative image')
+    return noisy_imagesp
 
 
-# Apply thresholding to create a binary image
-threshold = 127.5
-thresholded_image = (image > threshold) * 255
-show_image(thresholded_image, "Thresholded Image")
+#adding noise to the image
+def addnoise(image):
+    mean = 0
+    stddev = 180
+    noise = np.zeros(image.shape, np.uint8)
+    cv2.randn(noise, mean, stddev)
+
+    noisy_img = cv2.add(image, noise)
+    return noisy_img
+
+def high_pass_filter(noisy_img, kernel_size = 3):
+    kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size**2)
+    blurred = cv2.filter2D(noisy_img, -1, kernel)
+    hpf = noisy_img - blurred
+    
+    return hpf
+
+def low_pass_filter(image, kernel_size=3):
+    kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size**2)
+    lpf = cv2.filter2D(image, -1, kernel)
+
+    return lpf
 
 
-# Apply contrast stretching
-img2 = image.copy()
+def median_filter(noisy_img, kernel_size=3):
+    median_filter = cv2.medianBlur(noisy_img, kernel_size)
+    return median_filter
 
-s1, s2 = 63.75, 127.5
-r1, r2 = np.min(image) + 1, np.max(image)
-l = max_ins
+noisy_image = addnoise(image)
+show_image(noisy_image, 'Noisy Image')
+show_image(high_pass_filter(noisy_image, 2), 'High Pass Filter')
+show_image(low_pass_filter(noisy_image), 'Low Pass Filter')
+show_image(median_filter(noisy_image), 'Median Filter')
 
-alpha = s1 / r1
-beta = (s2 - s1) / (r2 - r1)
-gamma = (l - 1 - s2) / (l - 1 - r2)
-
-for r in range(height):
-    for c in range(width):
-        if img2[r, c] <= r1:
-            img2[r, c] = alpha * img2[r, c]
-        elif img2[r, c] <= r2 and img2[r, c] > r1:
-            img2[r, c] = beta * (img2[r, c] - r1) + s1
-        else:
-            img2[r, c] = gamma * (img2[r, c] - r2) + s2
-
-# Display the original image and the contrast stretched image
-show_image(image)
-show_image(img2)
-
-
-# Gray level slicing without and with background
-min_t = 63.75
-max_t = 127.5
-highlight_value = 255
-
-# Create a mask for the highlighted region
-mask = np.logical_and(image >= min_t, image <= max_t)
-
-# Create copies of the original image
-wb_without_bg = image.copy()
-wb_with_bg = image.copy()
-
-# Apply the highlight value to the pixels within the mask (without background)
-wb_without_bg[mask] = highlight_value
-show_image(wb_without_bg, 'Without Background')
-
-# Apply a different value to the background pixels (with background)
-wb_with_bg[~mask] = 50
-show_image(wb_with_bg, 'With Background')
-
-# Bit plane slicing and display
-for bp in range(8):
-    bit_plane = np.bitwise_and(image, 2 ** bp)
-    nbp = (bit_plane * 255).astype(np.uint8)
-    show_image(nbp, f"Bit Plane {bp + 1}")
+sp_img = salt_pepper(image)
+show_image(sp_img, 'Salt&Pepper Image')
+show_image(high_pass_filter(sp_img, 3), 'Salt&Pepper High Pass Filter')
+show_image(low_pass_filter(sp_img), 'Salt&Pepper Low Pass Filter')
+show_image(median_filter(sp_img), 'Salt&Pepper Median Filter')
