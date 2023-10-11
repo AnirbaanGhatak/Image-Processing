@@ -1,59 +1,65 @@
 # Name: Anirbaan Ghatak
-# Roll no: C026
-# Aim:To write a program to enhance the quality of an image by noise removal.
+# Roll no.: C026
+# Aim: Write a program to detect edges in the image using Robert, Prewitt and Sobel operators.
+
+import cv2
 import numpy as np
-import cv2 as cv
-from google.colab.patches import cv2_imshow
+import matplotlib.pyplot as plt
 
-img = cv.resize(cv.imread('asdfjk.jpg'), (256, 256))
+# Load the image
+img = cv2.resize(cv2.imread('IMG_2458_grey_CLOSEUP.jpg',
+                cv2.IMREAD_GRAYSCALE), (0, 0), fx=0.5, fy=0.5)
+nat = cv2.resize(cv2.imread('nature.jpg', cv2.IMREAD_GRAYSCALE),
+                (0, 0), fx=0.5, fy=0.5)
+medical = cv2.resize(cv2.imread(
+    'medical.jpg', cv2.IMREAD_GRAYSCALE), (0, 0), fx=0.5, fy=0.5)
 
 
-def showImage(img):
-    cv2_imshow(img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+def edges(img):
+    # Apply the Roberts operator
+    edges_roberts = cv2.Sobel(
+        img, cv2.CV_8U, 1, 0, ksize=3) + cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=3)
+
+    # Apply the Sobel operator
+    edges_sobel = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=3) + \
+        cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=3)
+
+    # Apply the Prewitt operator
+    kernelx = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
+    kernely = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+    edges_prewitt = cv2.filter2D(
+        img, -1, kernelx) + cv2.filter2D(img, -1, kernely)
+
+    plt.figure(figsize=(10, 8))
+
+    # Plot the first image in the top left position
+    plt.subplot(2, 2, 1)
+    plt.imshow(img, cmap='gray')
+    plt.title('Original')
+    plt.axis('off')
+
+    # Plot the second image in the top right position
+    plt.subplot(2, 2, 2)
+    plt.imshow(edges_roberts, cmap='gray')
+    plt.title('Roberts Edges')
+    plt.axis('off')
+
+    # Plot the third image in the bottom left position
+    plt.subplot(2, 2, 3)
+    plt.imshow(edges_sobel, cmap='gray')
+    plt.title('Soble Edges')
+    plt.axis('off')
+
+    # Plot the fourth image in the bottom right position
+    plt.subplot(2, 2, 4)
+    plt.imshow(edges_prewitt, cmap='gray')
+    plt.title('Prewitt Edges')
+    plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
 
 
-grayImg = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-showImage(grayImg)
-
-h2 = np.array([[1, 1], [1, -1]])
-h = h2.copy()
-for i in range(7):
-    h = np.kron(h, h2)
-hT = np.transpose(h)
-
-hadamard = np.dot(np.dot(h, grayImg), hT).astype(np.uint8)
-
-showImage(hadamard)
-
-inverse = np.dot(np.dot(h, hadamard), hT)/(256**2)
-showImage(inverse.astype(np.uint8))
-
-rc = dict()
-for i in range(len(h)):
-    change = 0
-    x = 1
-    for j in h[i]:
-        if x != j:
-            x = j
-            change += 1
-    rc[i] = change
-
-sort = sorted(rc.items(), key=lambda kv:
-              kv[1])
-
-walsh=h.copy()
-for i in range(len(walsh)):
-    index=sort[i][0]
-    walsh[i]=h[index]
-walsh=walsh.astype(np.uint8)
-
-showImage(walsh)
-
-walshT=np.dot(np.dot(walsh,grayImg),np.transpose(walsh)).astype(np.uint8)
-
-showImage(walshT)
-
-inverseWalsh=np.dot(np.dot(walsh,walshT),np.transpose(walsh))//(255**2)
-showImage(inverseWalsh.astype(np.uint8))
+edges(img)
+edges(nat)
+edges(medical)
